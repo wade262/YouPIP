@@ -1,6 +1,6 @@
 Package: com.spicat.youpip
 Name: YouPIP
-Depends: mobilesubstrate, firmware (>= 9.0)
+Depends: mobilesubstrate, com.spicat.forceinpicture (>= 1.1)
 Version: 0.0.1
 Architecture: iphoneos-arm
 Description: Enable PIP in native YouTube app.

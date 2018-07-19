@@ -1,5 +1,6 @@
-TARGET = iphone:11.2:10.0
-PACKAGE_VERSION = 0.0.3
+TARGET = iphone:11.2:11.0
+ARCHS = arm64
+PACKAGE_VERSION = 0.0.4
 
 include $(THEOS)/makefiles/common.mk
 
