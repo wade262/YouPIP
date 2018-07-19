@@ -1,7 +1,9 @@
+BOOL PIP = YES;
+
 %hook YTPlayerPIPController
 
 - (BOOL)canInvokePictureInPicture {
-	return YES;
+	return PIP ? YES : %orig;
 }
 
 %end
@@ -14,6 +16,15 @@
 
 %end
 
+%hook YTSettings
+
+- (void)setPictureInPictureEnabled:(BOOL)enabled {
+	PIP = enabled;
+	%orig(enabled);
+}
+
+%end
+
 %hook YTIBackgroundOfflineSettingCategoryEntryRenderer
 
 - (BOOL)isBackgroundEnabled {
@@ -22,13 +33,13 @@
 
 %end
 
-/*%hook AVPictureInPictureController
+%hook AVPictureInPictureController
 
 - (BOOL)isPictureInPicturePossible {
 	return PIP ? YES : %orig;
 }
 
-%end*/
+%end
 
 %ctor {
 	%init;
