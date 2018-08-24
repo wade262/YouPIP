@@ -1,6 +1,5 @@
-TARGET = iphone:11.2:11.0
-ARCHS = arm64
-PACKAGE_VERSION = 0.0.4.2
+TARGET = iphone:11.2:10.0
+PACKAGE_VERSION = 0.0.4.3
 
 include $(THEOS)/makefiles/common.mk
 
@@ -10,4 +9,4 @@ YouPip_FILES = Tweak.xm
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 after-install::
-	install.exec "killall -9 YouTube"
+	install.exec "killall -9 YouTube || true"

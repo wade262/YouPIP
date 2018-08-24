@@ -1,26 +1,7 @@
-BOOL PIP = YES;
-
-%hook YTPlayerPIPController
-
-- (BOOL)canInvokePictureInPicture {
-	return PIP ? YES : %orig;
-}
-
-%end
-
 %hook MLPIPController
 
 - (BOOL)isPictureInPictureSupported {
 	return YES;
-}
-
-%end
-
-%hook YTSettings
-
-- (void)setPictureInPictureEnabled:(BOOL)enabled {
-	PIP = enabled;
-	%orig(enabled);
 }
 
 %end
@@ -33,10 +14,27 @@ BOOL PIP = YES;
 
 %end
 
-%hook AVPictureInPictureController
+%hook YTBackgroundabilityPolicy
 
-- (BOOL)isPictureInPicturePossible {
-	return PIP ? YES : %orig;
+- (void)updateIsBackgroundableByUserSettings {
+	%orig;
+	MSHookIvar<BOOL>(self, "_backgroundableByUserSettings") = YES;
+}
+
+%end
+
+%hook YTIPictureInPictureRenderer
+
+- (BOOL)playableInPip {
+	return YES;
+}
+
+%end
+
+%hook YTIosMediaHotConfig
+
+- (BOOL)enablePictureInPicture {
+	return YES;
 }
 
 %end
