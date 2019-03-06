@@ -11,6 +11,7 @@
 @end
 
 @interface MLPIPController : NSObject
+- (id)initWithPlaceholderPlayerItemResourcePath:(NSString *)placeholderPath;
 - (BOOL)isPictureInPictureSupported;
 - (void)setGimme:(id)gimme;
 @end
@@ -49,20 +50,10 @@
 - (id)instanceForType:(id)protocol;
 @end
 
-static MLPIPController *pipController = nil;
-
-BOOL hooked = NO;
-
-%hook AVPictureInPictureController
-
-- (void)pictureInPictureProxy:(id)arg1 failedToStartPictureInPictureWithAnimationType:(NSInteger)arg2 error:(NSError *)arg3 {
-    if (arg3.code == -1000) {
-        return;
-    }
-    %orig;
-}
-
-%end
+@interface GIMBindingBuilder : NSObject
+- (GIMBindingBuilder *)bindType:(Class)type;
+- (GIMBindingBuilder *)initializedWith:(id (^)(id))block;
+@end
 
 %hook YTIBackgroundOfflineSettingCategoryEntryRenderer
 
@@ -97,68 +88,26 @@ BOOL hooked = NO;
 
 %end
 
-%hook GIMMe
-
-- (id)nullableInstanceForType:(id)protocol {
-    if ([[[protocol class] description] isEqualToString:@"MLPIPController"]) {
-        if (pipController == nil)
-		    pipController = [[NSClassFromString(@"MLPIPController") alloc] init];
-        [pipController setGimme:self];
-        return [pipController retain];
-    }
-    return %orig;
-}
-
-%end
-
-BOOL override = NO;
-
 %hook MLPIPController
 
 - (BOOL)isPictureInPictureSupported {
 	return YES;
 }
 
-- (void)initializePictureInPicture {
-    override = YES;
+%end
+
+// This is where magic occurs! (cr. @PoomSmart)
+// I however would leave the other hooks here just in case
+%hook YTAppModule
+
+- (void)configureWithBinder:(GIMBindingBuilder *)binder {
     %orig;
-    override = NO;
-}
-
-%new
-- (void)pictureInPictureControllerDidStopPictureInPicture:(id)pictureInPictureController {
-
+    [[[[binder bindType:NSClassFromString(@"MLPIPController")] retain] autorelease] initializedWith:^(MLPIPController *controller){
+        return [controller initWithPlaceholderPlayerItemResourcePath:@"/Library/Application Support/YouPIP/PlaceholderVideo.mp4"];
+    }];
 }
 
 %end
-
-%hook AVPlayerItem
-
-+ (AVPlayerItem *)playerItemWithURL:(NSURL *)url {
-    if (override)
-        return %orig([NSURL URLWithString:url.absoluteString]);
-    return %orig;
-}
-
-%end
-
-%hook YTPlaybackControllerUIWrapper
-
-- (void)playbackController:(id)arg1 didActivateVideo:(YTSingleVideoController *)controller withPlaybackData:(id)arg3 {
-    %orig;
-    if (controller) {
-        YTSingleVideo *video = controller.videoData;
-        MLVideo *mlvideo = video.video;
-        MLStreamingData *streamingData = mlvideo.streamingData;
-        NSURL *url = streamingData.adaptiveStreams[0].URL;
-        [pipController setValue:url.absoluteString forKey:@"_placeholderPlayerItemResourcePath"];
-    }
-}
-
-%end
-
-// YTPlayerView .playerViewDelegate (YTPlaybackControllerUIWrapper) .contentVideo or .activeVideo (YTSingleVideoController)
-// .videoData (YTSingleVideo) .video (MLVideo) .streamingData (MLStreamingData) -> adaptiveStreams as array
 
 %group LateHook
 
@@ -196,32 +145,10 @@ BOOL override = NO;
 
 %end
 
-// YTPlayerPIPController
-//id d = [[[[[[self valueForKey:@"_singleVideo"] videoData] valueForKey:@"_playbackData"] playerResponse] playerData] playabilityStatus];
-// canInvokePictureInPicture
-
-/*%hook GPBMessage
-
-+ (bool)resolveClassMethod:(SEL)method {
-    bool orig = %orig;
-    NSString *s = NSStringFromSelector(method);
-    if ([@"playableInPip" isEqualToString:s] || [@"hasPictureInPictureRenderer" isEqualToString:s]) {
-        %init(LateHook);
-    }
-    return orig;
-}
-
-%end*/
-
-// YTInnerTubeExtensionAdditionsAddExtensions()
-
 %hook YTBaseInnerTubeService
 
 + (void)initialize {
     %orig;
-    /*GPBExtensionRegistry *registry = [[objc_getClass("GoogleGlobalExtensionRegistry") class] performSelector:@selector(extensionRegistry)];
-    id extension = [NSClassFromString(@"YTIPictureInPictureRendererRoot") pictureInPictureRenderer];
-    [registry addExtension:extension];*/
     %init(LateHook);
 }
 
